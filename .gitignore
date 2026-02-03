@@ -1,1 +1,9 @@
+#  Rust build dir
 /target
+
+# Github copliot agents
+.github/agents
+
+# Github copliot instructions
+.github/instructions
+
