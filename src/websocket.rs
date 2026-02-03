@@ -1,15 +1,35 @@
 use anyhow::{Context, Result};
 use futures_util::{SinkExt, StreamExt};
+use serde::Deserialize;
 use tokio::net::TcpStream;
 use tokio_tungstenite::{MaybeTlsStream, WebSocketStream, connect_async, tungstenite::Message};
-use uuid::Uuid;
 
+use crate::captcha::load_hcaptcha_token;
 use crate::messages::{ClientMessage, ServerMessage};
+
+#[derive(Debug, Deserialize)]
+struct StartSessionResponse {
+    session: Option<String>,
+    data: Option<StartSessionData>,
+}
+
+#[derive(Debug, Deserialize)]
+struct StartSessionData {
+    session: String,
+}
+
+#[derive(Debug, serde::Serialize)]
+struct StartSessionRequest<'a> {
+    addr: &'a str,
+    #[serde(rename = "hcaptchaToken", skip_serializing_if = "Option::is_none")]
+    hcaptcha_token: Option<&'a str>,
+    #[serde(rename = "token", skip_serializing_if = "Option::is_none")]
+    token: Option<&'a str>,
+}
 
 pub struct WebSocketClient {
     wallet_address: String,
     socket_base_url: String,
-    session_id: String,
 }
 
 impl WebSocketClient {
@@ -18,7 +38,6 @@ impl WebSocketClient {
         Self {
             wallet_address: wallet_address.into(),
             socket_base_url: "wss://sepolia-faucet.pk910.de/ws/pow".to_string(),
-            session_id: Uuid::new_v4().to_string(),
         }
     }
 
@@ -28,28 +47,31 @@ impl WebSocketClient {
         let session_url = "https://sepolia-faucet.pk910.de/api/startSession";
         let client = reqwest::Client::new();
 
+        let captcha_token = load_hcaptcha_token().context("Failed to load hCaptcha token")?;
+        let request_body = StartSessionRequest {
+            addr: &self.wallet_address,
+            hcaptcha_token: Some(&captcha_token),
+            token: Some(&captcha_token),
+        };
+
         let response = client
             .post(session_url)
-            .json(&serde_json::json!({
-                "addr": self.wallet_address,
-            }))
+            .json(&request_body)
             .send()
             .await
             .context("Failed to create session")?;
 
-        let session_data: serde_json::Value = response
+        let session_data: StartSessionResponse = response
             .json()
             .await
             .context("Failed to parse session response")?;
 
-        eprintln!("[Debug] Session response: {}", session_data);
+        eprintln!("[Debug] Session response: {:?}", session_data);
 
         let session_id = session_data
-            .get("session")
-            .or(session_data.get("data").and_then(|d| d.get("session")))
-            .and_then(|v| v.as_str())
-            .context("Missing 'session' field in response")?
-            .to_string();
+            .session
+            .or(session_data.data.map(|d| d.session))
+            .context("Missing 'session' field in response")?;
 
         eprintln!("[Session] Created session: {}", session_id);
 

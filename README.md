@@ -14,7 +14,7 @@ Replaces the inefficient browser-based WASM miner with a native Rust executable 
 ## Usage
 
 ```bash
-cargo run --release
+HCAPTCHA_TOKEN="<token>" WALLET_ADDRESS=0xYourAddress cargo run --release
 ```
 
 ## Requirements
@@ -22,6 +22,7 @@ cargo run --release
 - Rust 1.70+
 - CUDA Toolkit (for GPU mining)
 - AVX2-capable CPU (Intel 4th gen+ / Ryzen 1st gen+)
+- hCaptcha token (set HCAPTCHA_TOKEN or HCAPTCHA_TOKEN_FILE)
 
 ## Protocol
 

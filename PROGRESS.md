@@ -2,8 +2,8 @@
 
 - [ ] CAPTCHA Integration (Phase 1B - Blocker)
   - [ ] Research browser automation or CAPTCHA solving strategies
-  - [ ] Integrate hCaptcha token provider OR use headless browser for token generation
-  - [ ] Update `WebSocketClient::connect()` to obtain CAPTCHA token before session creation
+  - [x] Integrate hCaptcha token provider (env/file based)
+  - [x] Update `WebSocketClient::connect()` to obtain CAPTCHA token before session creation
   - [ ] Test full connection workflow once CAPTCHA is solved
 
 - [ ] Phase 2: Job Management (Day 3)
